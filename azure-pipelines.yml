@@ -11,18 +11,16 @@ resources:
 variables:
 
   # Container registry service connection established during pipeline creation
-  dockerRegistryServiceConnection: '56b63a88-d186-4ec8-a101-bdc8068600d1'
-  imageRepository: 'bhupatidotnetdemo'
-  containerRegistry: 'berm123.azurecr.io'
+  dockerRegistryServiceConnection: '2272b96c-8117-4f6e-9e79-0ebb452d08e0'
+  imageRepository: 'dilipvavilapallidotnetdemo'
+  containerRegistry: 'projectk.azurecr.io'
   dockerfilePath: '**/Dockerfile'
   tag: '$(Build.BuildId)'
-  imagePullSecret: 'berm123456666c4-auth'
+  imagePullSecret: 'projectk128897d6-auth'
 
   # Agent VM image name
-  vmImageName: 'self'
+  vmImageName: 'pool'
 
-  # Name of the new namespace being created to deploy the PR changes.
-  k8sNamespaceForPR: 'review-app-$(System.PullRequest.PullRequestId)'
 
 stages:
 - stage: Build
@@ -42,3 +40,50 @@ stages:
         containerRegistry: $(dockerRegistryServiceConnection)
         tags: |
           $(tag)
+
+    - upload: manifests
+      artifact: manifests
+
+- stage: Deploy
+  displayName: Deploy stage
+  dependsOn: Build
+
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    pool:
+      name: $(vmImageName)
+    environment: 'bhupati007dotnetdemo-1728.gnb'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: KubernetesManifest@0
+            displayName: Create imagePullSecret
+            inputs:
+              action: createSecret
+              secretName: $(imagePullSecret)
+              dockerRegistryEndpoint: $(dockerRegistryServiceConnection)
+
+#          - task: HelmDeploy@0
+#           inputs:
+#              connectionType: 'Azure Resource Manager'
+#             azureSubscription: 'Azure subscription 1(3d6943a4-7dba-473c-a241-3881ed39f39a)'
+#             azureResourceGroup: 'cluster'
+#             kubernetesCluster: 'cluster'
+#             namespace: 'my'
+#             command: 'upgrade'
+#             chartType: 'FilePath'
+#             chartPath: 'C:\Users\naren\OneDrive\Desktop\CIS\NEW\dotnetdemo\helm-repo'
+#             valueFile: 'values.yaml'
+          - task: HelmDeploy@0
+            inputs:
+              connectionType: 'Azure Resource Manager'
+              azureSubscription: 'Azure subscription 1(3d6943a4-7dba-473c-a241-3881ed39f39a)'
+              azureResourceGroup: 'cluster'
+              kubernetesCluster: 'cluster'
+              namespace: 'cka'
+              command: 'upgrade'
+              chartType: 'FilePath'
+              chartPath: 'helm-repo'
+              valueFile: 'values.yaml'
